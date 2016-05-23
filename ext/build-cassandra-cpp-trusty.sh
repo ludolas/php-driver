@@ -19,7 +19,7 @@ check_executable cmake grep sed
 set -ex
 
 #rm -Rf php-driver-installation
-mkdir php-driver-installation
+mkdir -p php-driver-installation
 pushd php-driver-installation
 
 mkdir build
