@@ -1,6 +1,6 @@
 #!/bin/bash
 git submodule update --init
-git submodule foreach 'git checkout master'
+git submodule foreach 'git checkout 2.3.0'
 
 #!/bin/bash
 
