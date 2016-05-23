@@ -22,11 +22,11 @@ set -ex
 mkdir -p php-driver-installation
 pushd php-driver-installation
 
-mkdir build
+mkdir -p build
 builddir=$(cd build; pwd)
 
 echo "Compiling cpp-driver..."
-mkdir cpp-driver
+mkdir -p cpp-driver
 pushd cpp-driver
 cmake -DCMAKE_CXX_FLAGS="-fPIC" -DCMAKE_INSTALL_PREFIX:PATH=$builddir -DCASS_BUILD_STATIC=ON \
   -DCASS_BUILD_SHARED=OFF -DCMAKE_BUILD_TYPE=RELEASE -DCASS_USE_ZLIB=ON \
