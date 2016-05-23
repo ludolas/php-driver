@@ -10,7 +10,7 @@ configure-stamp:
 	dh_testdir
 	./build-cassandra-cpp-trusty.sh
 	phpize
-	LIBS="-lssl -lz -luv -lm -lstdc++" LDFLAGS="-L/tmp/php-driver-installation/build" ./configure --with-cassandra=tmp/php-driver-installation/build --with-libdir=lib
+	LIBS="-lssl -lz -luv -lm -lstdc++" LDFLAGS="-Lphp-driver-installation/lib" ./configure --with-cassandra=php-driver-installation --with-libdir=lib
 	touch configure-stampbuild: build-stamp
 
 build: build-stamp
