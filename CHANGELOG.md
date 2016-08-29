@@ -1,3 +1,33 @@
+# 1.2.2
+
+Bug Fixes:
+
+* [PHP-88] \Cassandra\Timestamp::toDateTime segfault with PHP7
+* [PHP-112] Freeing a null future as result of a failure in \Cassandra\DefaultSession::executeAsync()
+* [PHP-115] \Cassandra\UUID returning duplicate UUIDs
+
+# 1.2.1
+
+Bug Fixes:
+
+* [PHP-113] pecl install of 1.2.0 fails because sourcecode is missing FutureRows.h
+
+# 1.2.0
+
+Features:
+
+* Added support for `tinyint` and `smallint` types
+* Added support for `date` and `time` types
+* Added support for secondary index metadata
+* Added support for UDF/UDA metadata
+* Added support for materialized view metadata
+* Added blacklist and whitelist datacenter and host policies
+
+Bug Fixes:
+
+* [PHP-100] Whitelist/Blacklist LB setting should update the cluster builder hash key
+* [PHP-101] Memory leak when paging results
+
 # 1.1.0
 
 Features:

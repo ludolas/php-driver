@@ -30,6 +30,19 @@ interface Table
     function name();
 
     /**
+     * Return a table's option by name
+     * @return Cassandra\Value Value of an option by name
+     */
+    function option($name);
+
+    /**
+     * Returns all the table's options
+     * @return array A dictionary of `string` and `Cassandra\Value pairs of the
+     *               view's options.
+     */
+    function options();
+
+    /**
      * Description of the table, if any
      * @return string Table description or null
      */
@@ -134,7 +147,7 @@ interface Table
     /**
      * Returns column by name
      * @param  string           $name Name of the column
-     * @return Cassandra\Column       Column instance
+     * @return Cassandra\Column Column instance
      */
     function column($name);
 
@@ -143,4 +156,28 @@ interface Table
      * @return array A list of `Cassandra\Column` instances
      */
     function columns();
+
+    /**
+     * Returns the partition key columns of the table
+     * @return array A list of of `Cassandra\Column` instances
+     */
+     function partitionKey();
+
+    /**
+     * Returns both the partition and clustering key columns of the table
+     * @return array A list of of `Cassandra\Column` instances
+     */
+     function primaryKey();
+
+    /**
+     * Returns the clustering key columns of the table
+     * @return array A list of of `Cassandra\Column` instances
+     */
+     function clusteringKey();
+
+    /**
+     *
+     * @return array A list of cluster column orders ('asc' and 'desc')
+     */
+     function clusteringOrder();
 }

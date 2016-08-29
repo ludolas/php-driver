@@ -40,6 +40,8 @@
   #define PHP_CASSANDRA_GET_NUMERIC(obj) php_cassandra_numeric_object_fetch(Z_OBJ_P(obj))
   #define PHP_CASSANDRA_GET_BLOB(obj) php_cassandra_blob_object_fetch(Z_OBJ_P(obj))
   #define PHP_CASSANDRA_GET_TIMESTAMP(obj) php_cassandra_timestamp_object_fetch(Z_OBJ_P(obj))
+  #define PHP_CASSANDRA_GET_DATE(obj) php_cassandra_date_object_fetch(Z_OBJ_P(obj))
+  #define PHP_CASSANDRA_GET_TIME(obj) php_cassandra_time_object_fetch(Z_OBJ_P(obj))
   #define PHP_CASSANDRA_GET_UUID(obj) php_cassandra_uuid_object_fetch(Z_OBJ_P(obj))
   #define PHP_CASSANDRA_GET_INET(obj) php_cassandra_inet_object_fetch(Z_OBJ_P(obj))
   #define PHP_CASSANDRA_GET_COLLECTION(obj) php_cassandra_collection_object_fetch(Z_OBJ_P(obj))
@@ -64,6 +66,10 @@
   #define PHP_CASSANDRA_GET_KEYSPACE(obj) php_cassandra_keyspace_object_fetch(Z_OBJ_P(obj))
   #define PHP_CASSANDRA_GET_TABLE(obj) php_cassandra_table_object_fetch(Z_OBJ_P(obj))
   #define PHP_CASSANDRA_GET_COLUMN(obj) php_cassandra_column_object_fetch(Z_OBJ_P(obj))
+  #define PHP_CASSANDRA_GET_INDEX(obj) php_cassandra_index_object_fetch(Z_OBJ_P(obj))
+  #define PHP_CASSANDRA_GET_MATERIALIZED_VIEW(obj) php_cassandra_materialized_view_object_fetch(Z_OBJ_P(obj))
+  #define PHP_CASSANDRA_GET_FUNCTION(obj) php_cassandra_function_object_fetch(Z_OBJ_P(obj))
+  #define PHP_CASSANDRA_GET_AGGREGATE(obj) php_cassandra_aggregate_object_fetch(Z_OBJ_P(obj))
   #define PHP_CASSANDRA_GET_TYPE(obj) php_cassandra_type_object_fetch(Z_OBJ_P(obj))
   #define PHP_CASSANDRA_GET_RETRY_POLICY(obj) php_cassandra_retry_policy_object_fetch(Z_OBJ_P(obj))
   #define PHP_CASSANDRA_GET_TIMESTAMP_GEN(obj) php_cassandra_timestamp_gen_object_fetch(Z_OBJ_P(obj))
@@ -71,6 +77,8 @@
   #define PHP_CASSANDRA_GET_NUMERIC(obj) (cassandra_numeric *)zend_object_store_get_object((obj) TSRMLS_CC)
   #define PHP_CASSANDRA_GET_BLOB(obj) (cassandra_blob *)zend_object_store_get_object((obj) TSRMLS_CC)
   #define PHP_CASSANDRA_GET_TIMESTAMP(obj) (cassandra_timestamp *)zend_object_store_get_object((obj) TSRMLS_CC)
+  #define PHP_CASSANDRA_GET_DATE(obj) (cassandra_date *)zend_object_store_get_object((obj) TSRMLS_CC)
+  #define PHP_CASSANDRA_GET_TIME(obj) (cassandra_time *)zend_object_store_get_object((obj) TSRMLS_CC)
   #define PHP_CASSANDRA_GET_UUID(obj) (cassandra_uuid *)zend_object_store_get_object((obj) TSRMLS_CC)
   #define PHP_CASSANDRA_GET_INET(obj) (cassandra_inet *)zend_object_store_get_object((obj) TSRMLS_CC)
   #define PHP_CASSANDRA_GET_COLLECTION(obj) (cassandra_collection *)zend_object_store_get_object((obj) TSRMLS_CC)
@@ -95,6 +103,10 @@
   #define PHP_CASSANDRA_GET_KEYSPACE(obj) (cassandra_keyspace *)zend_object_store_get_object((obj) TSRMLS_CC)
   #define PHP_CASSANDRA_GET_TABLE(obj) (cassandra_table *)zend_object_store_get_object((obj) TSRMLS_CC)
   #define PHP_CASSANDRA_GET_COLUMN(obj) (cassandra_column *)zend_object_store_get_object((obj) TSRMLS_CC)
+  #define PHP_CASSANDRA_GET_INDEX(obj) (cassandra_index *)zend_object_store_get_object((obj) TSRMLS_CC)
+  #define PHP_CASSANDRA_GET_MATERIALIZED_VIEW(obj) (cassandra_materialized_view *)zend_object_store_get_object((obj) TSRMLS_CC)
+  #define PHP_CASSANDRA_GET_FUNCTION(obj) (cassandra_function *)zend_object_store_get_object((obj) TSRMLS_CC)
+  #define PHP_CASSANDRA_GET_AGGREGATE(obj) (cassandra_aggregate *)zend_object_store_get_object((obj) TSRMLS_CC)
   #define PHP_CASSANDRA_GET_TYPE(obj) (cassandra_type *)zend_object_store_get_object((obj) TSRMLS_CC)
   #define PHP_CASSANDRA_GET_RETRY_POLICY(obj) (cassandra_retry_policy *)zend_object_store_get_object((obj) TSRMLS_CC)
   #define PHP_CASSANDRA_GET_TIMESTAMP_GEN(obj) (cassandra_timestamp_gen *)zend_object_store_get_object((obj) TSRMLS_CC)
@@ -104,12 +116,16 @@ typedef enum {
   CASSANDRA_BIGINT,
   CASSANDRA_DECIMAL,
   CASSANDRA_FLOAT,
-  CASSANDRA_VARINT
+  CASSANDRA_VARINT,
+  CASSANDRA_SMALLINT,
+  CASSANDRA_TINYINT
 } cassandra_numeric_type;
 
 PHP_CASSANDRA_BEGIN_OBJECT_TYPE(numeric)
   cassandra_numeric_type type;
   union {
+    cass_int8_t tinyint_value;
+    cass_int16_t smallint_value;
     cass_int64_t bigint_value;
     cass_float_t float_value;
     mpz_t varint_value;
@@ -123,6 +139,14 @@ PHP_CASSANDRA_END_OBJECT_TYPE(numeric)
 PHP_CASSANDRA_BEGIN_OBJECT_TYPE(timestamp)
     cass_int64_t timestamp;
 PHP_CASSANDRA_END_OBJECT_TYPE(timestamp)
+
+PHP_CASSANDRA_BEGIN_OBJECT_TYPE(date)
+    cass_uint32_t date;
+PHP_CASSANDRA_END_OBJECT_TYPE(date)
+
+PHP_CASSANDRA_BEGIN_OBJECT_TYPE(time)
+    cass_int64_t time;
+PHP_CASSANDRA_END_OBJECT_TYPE(time)
 
 PHP_CASSANDRA_BEGIN_OBJECT_TYPE(blob)
   cass_byte_t *data;
@@ -247,8 +271,9 @@ PHP_CASSANDRA_BEGIN_OBJECT_TYPE(rows)
   cassandra_ref *statement;
   php5to7_zval session;
   php5to7_zval rows;
-  const CassResult *result;
-  php5to7_zval next_page;
+  php5to7_zval next_rows;
+  cassandra_ref *result;
+  cassandra_ref *next_result;
   php5to7_zval future_next_page;
 PHP_CASSANDRA_END_OBJECT_TYPE(rows)
 
@@ -256,6 +281,7 @@ PHP_CASSANDRA_BEGIN_OBJECT_TYPE(future_rows)
   cassandra_ref *statement;
   php5to7_zval session;
   php5to7_zval rows;
+  cassandra_ref *result;
   CassFuture *future;
 PHP_CASSANDRA_END_OBJECT_TYPE(future_rows)
 
@@ -348,21 +374,33 @@ PHP_CASSANDRA_BEGIN_OBJECT_TYPE(schema)
   cassandra_ref *schema;
 PHP_CASSANDRA_END_OBJECT_TYPE(schema)
 
-typedef const CassKeyspaceMeta cassandra_keyspace_meta;
-
 PHP_CASSANDRA_BEGIN_OBJECT_TYPE(keyspace)
   cassandra_ref *schema;
-  cassandra_keyspace_meta *meta;
+  const CassKeyspaceMeta *meta;
 PHP_CASSANDRA_END_OBJECT_TYPE(keyspace)
 
-typedef const CassTableMeta cassandra_table_meta;
-
 PHP_CASSANDRA_BEGIN_OBJECT_TYPE(table)
+  php5to7_zval name;
+  php5to7_zval options;
+  php5to7_zval partition_key;
+  php5to7_zval primary_key;
+  php5to7_zval clustering_key;
+  php5to7_zval clustering_order;
   cassandra_ref *schema;
-  cassandra_table_meta *meta;
+  const CassTableMeta *meta;
 PHP_CASSANDRA_END_OBJECT_TYPE(table)
 
-typedef const CassColumnMeta cassandra_column_meta;
+PHP_CASSANDRA_BEGIN_OBJECT_TYPE(materialized_view)
+  php5to7_zval name;
+  php5to7_zval options;
+  php5to7_zval partition_key;
+  php5to7_zval primary_key;
+  php5to7_zval clustering_key;
+  php5to7_zval clustering_order;
+  php5to7_zval base_table;
+  cassandra_ref *schema;
+  const CassMaterializedViewMeta *meta;
+PHP_CASSANDRA_END_OBJECT_TYPE(materialized_view)
 
 PHP_CASSANDRA_BEGIN_OBJECT_TYPE(column)
   php5to7_zval name;
@@ -370,8 +408,41 @@ PHP_CASSANDRA_BEGIN_OBJECT_TYPE(column)
   int reversed;
   int frozen;
   cassandra_ref *schema;
-  cassandra_column_meta *meta;
+  const CassColumnMeta *meta;
 PHP_CASSANDRA_END_OBJECT_TYPE(column)
+
+PHP_CASSANDRA_BEGIN_OBJECT_TYPE(index)
+  php5to7_zval name;
+  php5to7_zval kind;
+  php5to7_zval target;
+  php5to7_zval options;
+  cassandra_ref *schema;
+  const CassIndexMeta *meta;
+PHP_CASSANDRA_END_OBJECT_TYPE(index)
+
+PHP_CASSANDRA_BEGIN_OBJECT_TYPE(function)
+  php5to7_zval simple_name;
+  php5to7_zval arguments;
+  php5to7_zval return_type;
+  php5to7_zval signature;
+  php5to7_zval language;
+  php5to7_zval body;
+  cassandra_ref *schema;
+  const CassFunctionMeta *meta;
+PHP_CASSANDRA_END_OBJECT_TYPE(function)
+
+PHP_CASSANDRA_BEGIN_OBJECT_TYPE(aggregate)
+  php5to7_zval simple_name;
+  php5to7_zval argument_types;
+  php5to7_zval state_function;
+  php5to7_zval final_function;
+  php5to7_zval initial_condition;
+  php5to7_zval state_type;
+  php5to7_zval return_type;
+  php5to7_zval signature;
+  cassandra_ref *schema;
+  const CassAggregateMeta *meta;
+PHP_CASSANDRA_END_OBJECT_TYPE(aggregate)
 
 PHP_CASSANDRA_BEGIN_OBJECT_TYPE(type)
   CassValueType type;
@@ -408,11 +479,15 @@ typedef struct {
 extern PHP_CASSANDRA_API zend_class_entry *cassandra_value_ce;
 extern PHP_CASSANDRA_API zend_class_entry *cassandra_numeric_ce;
 extern PHP_CASSANDRA_API zend_class_entry *cassandra_bigint_ce;
+extern PHP_CASSANDRA_API zend_class_entry *cassandra_smallint_ce;
+extern PHP_CASSANDRA_API zend_class_entry *cassandra_tinyint_ce;
 extern PHP_CASSANDRA_API zend_class_entry *cassandra_blob_ce;
 extern PHP_CASSANDRA_API zend_class_entry *cassandra_decimal_ce;
 extern PHP_CASSANDRA_API zend_class_entry *cassandra_float_ce;
 extern PHP_CASSANDRA_API zend_class_entry *cassandra_inet_ce;
 extern PHP_CASSANDRA_API zend_class_entry *cassandra_timestamp_ce;
+extern PHP_CASSANDRA_API zend_class_entry *cassandra_date_ce;
+extern PHP_CASSANDRA_API zend_class_entry *cassandra_time_ce;
 extern PHP_CASSANDRA_API zend_class_entry *cassandra_uuid_interface_ce;
 extern PHP_CASSANDRA_API zend_class_entry *cassandra_uuid_ce;
 extern PHP_CASSANDRA_API zend_class_entry *cassandra_timeuuid_ce;
@@ -455,6 +530,8 @@ void cassandra_define_RangeException(TSRMLS_D);
 void cassandra_define_Value(TSRMLS_D);
 void cassandra_define_Numeric(TSRMLS_D);
 void cassandra_define_Bigint(TSRMLS_D);
+void cassandra_define_Smallint(TSRMLS_D);
+void cassandra_define_Tinyint(TSRMLS_D);
 void cassandra_define_Blob(TSRMLS_D);
 void cassandra_define_Collection(TSRMLS_D);
 void cassandra_define_Decimal(TSRMLS_D);
@@ -463,6 +540,8 @@ void cassandra_define_Inet(TSRMLS_D);
 void cassandra_define_Map(TSRMLS_D);
 void cassandra_define_Set(TSRMLS_D);
 void cassandra_define_Timestamp(TSRMLS_D);
+void cassandra_define_Date(TSRMLS_D);
+void cassandra_define_Time(TSRMLS_D);
 void cassandra_define_Tuple(TSRMLS_D);
 void cassandra_define_UserTypeValue(TSRMLS_D);
 void cassandra_define_UuidInterface(TSRMLS_D);
@@ -548,6 +627,14 @@ extern PHP_CASSANDRA_API zend_class_entry *cassandra_table_ce;
 extern PHP_CASSANDRA_API zend_class_entry *cassandra_default_table_ce;
 extern PHP_CASSANDRA_API zend_class_entry *cassandra_column_ce;
 extern PHP_CASSANDRA_API zend_class_entry *cassandra_default_column_ce;
+extern PHP_CASSANDRA_API zend_class_entry *cassandra_index_ce;
+extern PHP_CASSANDRA_API zend_class_entry *cassandra_default_index_ce;
+extern PHP_CASSANDRA_API zend_class_entry *cassandra_materialized_view_ce;
+extern PHP_CASSANDRA_API zend_class_entry *cassandra_default_materialized_view_ce;
+extern PHP_CASSANDRA_API zend_class_entry *cassandra_function_ce;
+extern PHP_CASSANDRA_API zend_class_entry *cassandra_default_function_ce;
+extern PHP_CASSANDRA_API zend_class_entry *cassandra_aggregate_ce;
+extern PHP_CASSANDRA_API zend_class_entry *cassandra_default_aggregate_ce;
 
 void cassandra_define_Schema(TSRMLS_D);
 void cassandra_define_DefaultSchema(TSRMLS_D);
@@ -557,6 +644,14 @@ void cassandra_define_Table(TSRMLS_D);
 void cassandra_define_DefaultTable(TSRMLS_D);
 void cassandra_define_Column(TSRMLS_D);
 void cassandra_define_DefaultColumn(TSRMLS_D);
+void cassandra_define_Index(TSRMLS_D);
+void cassandra_define_DefaultIndex(TSRMLS_D);
+void cassandra_define_MaterializedView(TSRMLS_D);
+void cassandra_define_DefaultMaterializedView(TSRMLS_D);
+void cassandra_define_Function(TSRMLS_D);
+void cassandra_define_DefaultFunction(TSRMLS_D);
+void cassandra_define_Aggregate(TSRMLS_D);
+void cassandra_define_DefaultAggregate(TSRMLS_D);
 
 extern PHP_CASSANDRA_API zend_class_entry *cassandra_type_ce;
 extern PHP_CASSANDRA_API zend_class_entry *cassandra_type_scalar_ce;

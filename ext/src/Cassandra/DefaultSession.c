@@ -30,6 +30,12 @@ zend_class_entry *cassandra_default_session_ce = NULL;
   return SUCCESS; \
 }
 
+static void
+free_result(void *result)
+{
+  cass_result_free((CassResult *) result);
+}
+
 static int
 bind_argument_by_index(CassStatement *statement, size_t index, zval *value TSRMLS_DC)
 {
@@ -62,9 +68,29 @@ bind_argument_by_index(CassStatement *statement, size_t index, zval *value TSRML
       CHECK_RESULT(cass_statement_bind_int64(statement, index, bigint->bigint_value));
     }
 
+    if (instanceof_function(Z_OBJCE_P(value), cassandra_smallint_ce TSRMLS_CC)) {
+      cassandra_numeric *smallint = PHP_CASSANDRA_GET_NUMERIC(value);
+      CHECK_RESULT(cass_statement_bind_int16(statement, index, smallint->smallint_value));
+    }
+
+    if (instanceof_function(Z_OBJCE_P(value), cassandra_tinyint_ce TSRMLS_CC)) {
+      cassandra_numeric *tinyint = PHP_CASSANDRA_GET_NUMERIC(value);
+      CHECK_RESULT(cass_statement_bind_int8(statement, index, tinyint->tinyint_value));
+    }
+
     if (instanceof_function(Z_OBJCE_P(value), cassandra_timestamp_ce TSRMLS_CC)) {
       cassandra_timestamp *timestamp = PHP_CASSANDRA_GET_TIMESTAMP(value);
       CHECK_RESULT(cass_statement_bind_int64(statement, index, timestamp->timestamp));
+    }
+
+    if (instanceof_function(Z_OBJCE_P(value), cassandra_date_ce TSRMLS_CC)) {
+      cassandra_date *date = PHP_CASSANDRA_GET_DATE(value);
+      CHECK_RESULT(cass_statement_bind_uint32(statement, index, date->date));
+    }
+
+    if (instanceof_function(Z_OBJCE_P(value), cassandra_time_ce TSRMLS_CC)) {
+      cassandra_time *time = PHP_CASSANDRA_GET_TIME(value);
+      CHECK_RESULT(cass_statement_bind_int64(statement, index, time->time));
     }
 
     if (instanceof_function(Z_OBJCE_P(value), cassandra_blob_ce TSRMLS_CC)) {
@@ -198,9 +224,29 @@ bind_argument_by_name(CassStatement *statement, const char *name,
       CHECK_RESULT(cass_statement_bind_int64_by_name(statement, name, bigint->bigint_value));
     }
 
+    if (instanceof_function(Z_OBJCE_P(value), cassandra_smallint_ce TSRMLS_CC)) {
+      cassandra_numeric *smallint = PHP_CASSANDRA_GET_NUMERIC(value);
+      CHECK_RESULT(cass_statement_bind_int16_by_name(statement, name, smallint->smallint_value));
+    }
+
+    if (instanceof_function(Z_OBJCE_P(value), cassandra_tinyint_ce TSRMLS_CC)) {
+      cassandra_numeric *tinyint = PHP_CASSANDRA_GET_NUMERIC(value);
+      CHECK_RESULT(cass_statement_bind_int8_by_name(statement, name, tinyint->tinyint_value));
+    }
+
     if (instanceof_function(Z_OBJCE_P(value), cassandra_timestamp_ce TSRMLS_CC)) {
       cassandra_timestamp *timestamp = PHP_CASSANDRA_GET_TIMESTAMP(value);
       CHECK_RESULT(cass_statement_bind_int64_by_name(statement, name, timestamp->timestamp));
+    }
+
+    if (instanceof_function(Z_OBJCE_P(value), cassandra_date_ce TSRMLS_CC)) {
+      cassandra_date *date = PHP_CASSANDRA_GET_DATE(value);
+      CHECK_RESULT(cass_statement_bind_uint32_by_name(statement, name, date->date));
+    }
+
+    if (instanceof_function(Z_OBJCE_P(value), cassandra_time_ce TSRMLS_CC)) {
+      cassandra_time *time = PHP_CASSANDRA_GET_TIME(value);
+      CHECK_RESULT(cass_statement_bind_int64_by_name(statement, name, time->time));
     }
 
     if (instanceof_function(Z_OBJCE_P(value), cassandra_blob_ce TSRMLS_CC)) {
@@ -584,8 +630,8 @@ PHP_METHOD(DefaultSession, execute)
 
     if (single && cass_result_has_more_pages(result)) {
       rows->statement = php_cassandra_new_ref(single, free_statement);
+      rows->result    = php_cassandra_new_ref((void *)result, free_result);
       PHP5TO7_ZVAL_COPY(PHP5TO7_ZVAL_MAYBE_P(rows->session), getThis());
-      rows->result    = result;
       return;
     }
 
@@ -618,8 +664,7 @@ PHP_METHOD(DefaultSession, executeAsync)
   CassStatement *single = NULL;
   CassBatch *batch  = NULL;
 
-  if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "O|z", &statement,
-                           cassandra_statement_ce, &options) == FAILURE) {
+  if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "z|z", &statement, &options) == FAILURE) {
     return;
   }
 
